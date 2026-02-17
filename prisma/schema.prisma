@@ -1,0 +1,95 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  email       String   @unique
+  name        String?
+  avatar      String?
+  phone       String?
+  password    String?
+  googleId    String?  @unique
+  isGuest     Boolean  @default(false)
+  kycStatus   String   @default("pending")
+  status      String   @default("active")
+  otp         String?
+  otpExpires  DateTime?
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings    Booking[]
+  kycDocs     KycDocument[]
+}
+
+model KycDocument {
+  id            String   @id @default(uuid())
+  userId        String
+  documentType  String
+  maskedNumber  String
+  fileUrl       String
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model Package {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  duration    Int
+  location    String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  dates       PackageDate[]
+}
+
+model PackageDate {
+  id            String   @id @default(uuid())
+  packageId     String
+  startDate     DateTime
+  endDate       DateTime
+  totalSeats    Int
+  availableSeats Int
+  price         Float
+
+  bookings      Booking[]
+  package       Package @relation(fields: [packageId], references: [id])
+}
+
+model Booking {
+  id            String   @id @default(uuid())
+  userId        String
+  packageDateId String
+  seats         Int
+  totalAmount   Float
+  status        String   @default("pending_payment")
+  createdAt     DateTime @default(now())
+
+  user          User        @relation(fields: [userId], references: [id])
+  packageDate   PackageDate @relation(fields: [packageDateId], references: [id])
+  payment       Payment?
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  bookingId   String  @unique
+  gatewayRef  String
+  amount      Float
+  status      String
+  createdAt   DateTime @default(now())
+
+  booking     Booking @relation(fields: [bookingId], references: [id])
+}
