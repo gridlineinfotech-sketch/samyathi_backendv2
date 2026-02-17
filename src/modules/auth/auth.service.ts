@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 import * as nodemailer from 'nodemailer';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -93,11 +94,13 @@ export class AuthService {
             accessToken: this.jwtService.sign({
                 sub: user.id,
                 email: user.email,
+                role: user.role,
             }),
             user: {
                 id: user.id,
                 email: user.email,
-                verified: user.verified
+                verified: user.verified,
+                role: user.role,
             }
         };
     }
@@ -157,5 +160,24 @@ export class AuthService {
         });
 
         return newUser;
+    }
+
+    async loginAdmin(body: { email: string; password: string }) {
+        const user = await this.prisma.user.findUnique({ where: { email: body.email } });
+
+        if (!user || user.role !== 'ADMIN') {
+            throw new UnauthorizedException('Invalid credentials or not an admin');
+        }
+
+        if (!user.password) {
+            throw new UnauthorizedException('Admin password not set');
+        }
+
+        const isMatch = await bcrypt.compare(body.password, user.password);
+        if (!isMatch) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        return this.generateToken(user);
     }
 }

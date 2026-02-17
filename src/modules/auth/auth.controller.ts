@@ -13,6 +13,12 @@ export class AuthController {
         return this.authService.requestOtp(body.email);
     }
 
+    @Post('admin/login')
+    @HttpCode(HttpStatus.OK)
+    async adminLogin(@Body() body: any) {
+        return this.authService.loginAdmin(body);
+    }
+
     @Post('login')
     @HttpCode(HttpStatus.OK)
     async login(@Body() body: { email: string }) {
