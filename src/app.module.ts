@@ -6,7 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PackagesModule } from './packages/packages.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PaymentsModule } from './payments/payments.module';
-// import { KycModule } from './kyc/kyc.module';
+import { KycModule } from './kyc/kyc.module';
 // import { AdminModule } from './admin/admin.module';
 
 @Module({
@@ -16,6 +16,7 @@ import { PaymentsModule } from './payments/payments.module';
     PackagesModule,
     BookingsModule,
     PaymentsModule,
+    KycModule,
   ],
   controllers: [AppController],
   providers: [AppService],
