@@ -1,31 +1,20 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
-import * as nodemailer from 'nodemailer';
+import { RedisCacheService } from '../../common/services/redis-cache.service';
+import { EmailService } from '../../common/services/email.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
     private readonly logger = new Logger(AuthService.name);
-    private transporter: nodemailer.Transporter;
 
     constructor(
         private prisma: PrismaService,
         private jwtService: JwtService,
-    ) {
-        // Initialize transporter
-        // In production, use environment variables for real SMTP config
-        this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: process.env.SMTP_USER || 'ethereal_user',
-                pass: process.env.SMTP_PASS || 'ethereal_pass'
-            }
-        });
-    }
+        private redisCache: RedisCacheService,
+        private emailService: EmailService,
+    ) {}
 
     async requestOtp(email: string) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -40,23 +29,13 @@ export class AuthService {
             await this.prisma.user.create({
                 data: {
                     email,
-                    otp,
-                    otpExpires,
                     verified: false,
-                },
-            });
-        } else {
-            await this.prisma.user.update({
-                where: { email },
-                data: {
-                    otp,
-                    otpExpires,
                 },
             });
         }
 
-        await this.sendEmail(email, otp);
-
+        await this.redisCache.storeOtp(email, otp, 300);
+        await this.emailService.sendOtpEmail(email, otp);
         return { message: 'OTP sent to email successfully' };
     }
 
@@ -67,21 +46,20 @@ export class AuthService {
             throw new UnauthorizedException('User not found');
         }
 
-        if (user.otp !== otp) {
+        const storedOtp = await this.redisCache.getOtp(email);
+        if (!storedOtp) {
+            throw new UnauthorizedException('OTP expired or not found');
+        }
+        if (storedOtp !== otp) {
             throw new UnauthorizedException('Invalid OTP');
         }
 
-        if (user.otpExpires && user.otpExpires < new Date()) {
-            throw new UnauthorizedException('OTP expired');
-        }
-
+        await this.redisCache.deleteOtp(email);
         // OTP is valid
         // Clear OTP and set verified
         const updatedUser = await this.prisma.user.update({
             where: { email },
             data: {
-                otp: null,
-                otpExpires: null,
                 verified: true,
             },
         });
@@ -103,31 +81,6 @@ export class AuthService {
                 role: user.role,
             }
         };
-    }
-
-    private async sendEmail(email: string, otp: string) {
-        // Log OTP to console for development/testing
-        this.logger.log(`=============================================`);
-        this.logger.log(`Generated OTP for ${email}: ${otp}`);
-        this.logger.log(`=============================================`);
-
-        try {
-            // Only attempt to send if config exists or just try and fail gracefully
-            if (process.env.SMTP_HOST) {
-                await this.transporter.sendMail({
-                    from: '"Pilgrim App" <no-reply@pilgrim.com>',
-                    to: email,
-                    subject: 'Your Login OTP',
-                    text: `Your OTP code is: ${otp}`,
-                    html: `<p>Your OTP code is: <b>${otp}</b></p>`,
-                });
-                this.logger.log(`Email sent to ${email}`);
-            } else {
-                this.logger.warn('SMTP_HOST not set. Email not sent via network. Check console for OTP.');
-            }
-        } catch (error) {
-            this.logger.error(`Failed to send email: ${error.message}`);
-        }
     }
 
     async validateGoogleUser(details: { email: string; name: string; avatar: string; googleId: string }) {
