@@ -4,6 +4,7 @@ import { BookingsController } from './bookings.controller';
 import { PrismaService } from '../database/prisma.service';
 
 @Module({
+  
   controllers: [BookingsController],
   providers: [BookingsService, PrismaService],
 })
