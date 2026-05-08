@@ -30,6 +30,7 @@ Add SMTP, Stripe, AWS S3, Cloudinary, and Google OAuth variables only if you are
 
 ## Notes
 
-- `db:prepare` uses `prisma db push` for the fastest setup on a fresh Railway Postgres database.
+- `db:prepare` runs `prisma migrate deploy` and then the admin seed, so the database setup matches the checked-in PostgreSQL migration history.
+- If Railway is still launching with `npx prisma migrate deploy && node dist/main`, update the service command or redeploy the latest commit. The repo no longer uses the old SQLite migration history.
 - If you keep `FILE_STORAGE_PROVIDER=local`, attach a Railway volume mounted at `/app/uploads`.
 - If you use Google OAuth, set `GOOGLE_CALLBACK_URL` to `https://your-backend-domain/api/auth/google/callback`.
