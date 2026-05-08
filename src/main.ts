@@ -4,12 +4,19 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import express from 'express';
+import { mkdirSync } from 'fs';
+import { join } from 'path';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const uploadsDir = join(process.cwd(), 'uploads');
+
+  mkdirSync(uploadsDir, { recursive: true });
 
   app.use(helmet());
+  app.use('/uploads', express.static(uploadsDir));
   app.use(rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,

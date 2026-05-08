@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
+import { readFile } from 'fs/promises';
 
 @Injectable()
 export class FileUploadService {
@@ -23,11 +24,12 @@ export class FileUploadService {
     try {
       const fileExtension = file.originalname.split('.').pop();
       const fileName = `${folder}/${randomUUID()}.${fileExtension}`;
+      const fileContents = await this.getFileContents(file);
 
       const params = {
         Bucket: this.bucketName,
         Key: fileName,
-        Body: file.buffer,
+        Body: fileContents,
         ContentType: file.mimetype,
       };
 
@@ -68,6 +70,7 @@ export class FileUploadService {
     });
 
     try {
+      const fileContents = await this.getFileContents(file);
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           { folder, resource_type: 'auto' },
@@ -75,12 +78,24 @@ export class FileUploadService {
             if (error) reject(error);
             else resolve(result);
           },
-        ).end(file.buffer);
+        ).end(fileContents);
       });
       return (result as any).secure_url;
     } catch (error) {
       this.logger.error('Cloudinary upload failed:', error.message);
       throw new Error('Failed to upload to Cloudinary');
     }
+  }
+
+  private async getFileContents(file: Express.Multer.File): Promise<Buffer> {
+    if (file.buffer) {
+      return file.buffer;
+    }
+
+    if (file.path) {
+      return readFile(file.path);
+    }
+
+    throw new Error('Uploaded file has no readable contents');
   }
 }

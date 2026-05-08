@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -22,6 +22,7 @@ model User {
   isGuest     Boolean  @default(false)
   kycStatus   String   @default("pending")
   status      String   @default("active")
+  role        String   @default("USER")
   otp         String?
   otpExpires  DateTime?
   verified    Boolean  @default(false)
@@ -30,6 +31,7 @@ model User {
 
   bookings    Booking[]
   kycDocs     KycDocument[]
+  notifications Notification[]
 }
 
 model KycDocument {
@@ -92,4 +94,16 @@ model Payment {
   createdAt   DateTime @default(now())
 
   booking     Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  message     String
+  type        String   @default("general")
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
 }
