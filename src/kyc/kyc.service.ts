@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { FileUploadService } from '../common/services/file-upload.service';
+import { unlink } from 'fs/promises';
 
 @Injectable()
 export class KycService {
@@ -13,10 +14,14 @@ export class KycService {
     const provider = process.env.FILE_STORAGE_PROVIDER || 'local';
     let fileUrl: string;
 
-    if (provider === 's3') {
-      fileUrl = await this.fileUploadService.uploadFile(file, 'kyc');
-    } else if (provider === 'cloudinary') {
-      fileUrl = await this.fileUploadService.uploadToCloudinary(file, 'kyc');
+    if (provider === 's3' || provider === 'cloudinary') {
+      fileUrl = provider === 's3'
+        ? await this.fileUploadService.uploadFile(file, 'kyc')
+        : await this.fileUploadService.uploadToCloudinary(file, 'kyc');
+
+      if (file.path) {
+        await unlink(file.path).catch(() => undefined);
+      }
     } else {
       fileUrl = `/uploads/${file.filename}`;
     }

@@ -41,19 +41,23 @@ export class PaymentsService {
     return { paymentUrl, gatewayRef: paymentIntentId, clientSecret };
   }
 
-  async getPaymentById(id: string) {
+  async getPaymentById(userId: string, id: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id },
       include: { booking: { include: { user: true, packageDate: { include: { package: true } } } } },
     });
     if (!payment) throw new NotFoundException('Payment not found');
+    if (payment.booking.userId !== userId) throw new NotFoundException('Payment not found');
     return payment;
   }
 
-  async webhook(body: any, signature?: string) {
+  async webhook(body: any, signature?: string, rawBody?: Buffer) {
     if (signature && process.env.STRIPE_WEBHOOK_SECRET) {
       try {
-        const event = await this.stripeService.constructEventFromPayload(Buffer.from(JSON.stringify(body)), signature);
+        const event = await this.stripeService.constructEventFromPayload(
+          rawBody ?? Buffer.from(JSON.stringify(body)),
+          signature,
+        );
         if (event.type === 'payment_intent.succeeded') {
           await this.handlePaymentSuccess((event.data.object as any).id);
         }
