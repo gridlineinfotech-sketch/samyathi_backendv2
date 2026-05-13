@@ -164,4 +164,52 @@ export class AdminService {
     }, {} as Record<string, number>);
     return { totalBookings: bookings.length, statusCounts, bookingsByMonth: [] };
   }
+
+  // Users
+  getUsers(status?: string, role?: string) {
+    const where: any = {};
+    if (status) where.status = status;
+    if (role) where.role = role;
+    return this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        kycStatus: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        _count: {
+          select: { bookings: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getUserDetails(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        bookings: {
+          include: {
+            packageDate: {
+              include: { package: true }
+            },
+            payment: true
+          },
+          orderBy: { createdAt: 'desc' }
+        },
+        kycDocs: true,
+        notifications: {
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        }
+      }
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
 }
