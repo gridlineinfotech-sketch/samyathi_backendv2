@@ -11,10 +11,12 @@ import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CommonModule } from './common/common.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule,
     CommonModule,
     AuthModule,
     PackagesModule,
@@ -28,4 +30,4 @@ import { CommonModule } from './common/common.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

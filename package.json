@@ -8,8 +8,8 @@
   "scripts": {
     "build": "nest build",
     "prisma:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:push": "node scripts/with-runtime-db.js prisma db push",
+    "db:migrate:deploy": "node scripts/with-runtime-db.js prisma migrate deploy",
     "db:seed": "node prisma/seed.js",
     "db:prepare": "npm run prisma:generate && npm run db:migrate:deploy && npm run db:seed",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

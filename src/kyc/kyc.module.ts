@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { KycService } from './kyc.service';
 import { KycController } from './kyc.controller';
-import { PrismaService } from '../database/prisma.service';
 import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
@@ -11,6 +10,6 @@ import { MulterModule } from '@nestjs/platform-express';
     }),
   ],
   controllers: [KycController],
-  providers: [KycService, PrismaService],
+  providers: [KycService],
 })
-export class KycModule { }
+export class KycModule {}

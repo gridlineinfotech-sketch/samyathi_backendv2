@@ -1,14 +1,45 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient(getPrismaClientOptions());
+
+function getPrismaClientOptions() {
+  const currentUrl = process.env.DATABASE_URL;
+  const localUrl =
+    process.env.DATABASE_URL_LOCAL ||
+    process.env.DATABASE_PUBLIC_URL ||
+    process.env.DATABASE_URL_EXTERNAL;
+
+  if (
+    currentUrl &&
+    currentUrl.includes('.railway.internal') &&
+    !process.env.RAILWAY_PROJECT_ID &&
+    localUrl
+  ) {
+    console.warn(
+      'Using external database URL for local seed because DATABASE_URL points to Railway private networking.',
+    );
+
+    return {
+      datasources: {
+        db: {
+          url: localUrl,
+        },
+      },
+    };
+  }
+
+  return undefined;
+}
 
 async function main() {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
 
   if (!email || !password) {
-    console.log('Skipping admin seed. Set ADMIN_EMAIL and ADMIN_PASSWORD to create an admin user.');
+    console.log(
+      'Skipping admin seed. Set ADMIN_EMAIL and ADMIN_PASSWORD to create an admin user.',
+    );
     return;
   }
 
