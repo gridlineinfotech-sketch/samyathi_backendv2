@@ -1,17 +1,23 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { CreateBookingDto } from './dto/create-booking.dto';
 
 @Injectable()
 export class BookingsService {
   constructor(private prisma: PrismaService) { }
 
-  async initiateBooking(userId: string, body: { packageDateId: string; seats: number }) {
+  async initiateBooking(userId: string, body: CreateBookingDto) {
+    if (!Array.isArray(body.travellers) || body.travellers.length !== body.seats) {
+      throw new BadRequestException('Traveller count must equal number of seats');
+    }
+
     const packageDate = await this.prisma.packageDate.findUnique({
       where: { id: body.packageDateId }
     });
 
     if (!packageDate || packageDate.availableSeats < body.seats) {
-      throw new Error('Not enough seats or package date not found');
+      throw new NotFoundException('Not enough seats or package date not found');
     }
 
     const totalAmount = packageDate.price * body.seats;
@@ -27,6 +33,8 @@ export class BookingsService {
         seats: body.seats,
         totalAmount,
         status: 'pending_payment',
+        travellers: body.travellers as unknown as Prisma.InputJsonValue,
+        note: body.note,
       }
     });
   }

@@ -99,6 +99,17 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
+  // Users
+  @Get('users')
+  getUsers(@Query('status') status?: string, @Query('role') role?: string) {
+    return this.adminService.getUsers(status, role);
+  }
+
+  @Get('users/:id')
+  getUserDetails(@Param('id') id: string) {
+    return this.adminService.getUserDetails(id);
+  }
+
   @Get('reports/revenue')
   getRevenueReport(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
     return this.adminService.getRevenueReport(startDate, endDate);
