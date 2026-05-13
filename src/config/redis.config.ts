@@ -1,23 +1,19 @@
 import Redis from 'ioredis';
+import {
+  buildRedisClientOptions,
+  resolveRedisConnection,
+} from './runtime-connections.config';
 
-const redisUrl =
-  process.env.REDIS_URL ||
-  process.env.REDIS_PRIVATE_URL ||
-  process.env.REDIS_PUBLIC_URL;
+const redisConnection = resolveRedisConnection(process.env);
 
-const redisOptions = {
-  maxRetriesPerRequest: 3,
-  retryStrategy: (times: number) => Math.min(times * 50, 2000),
-};
-
-export const redisClient = redisUrl
-  ? new Redis(redisUrl, redisOptions)
+export const redisClient = redisConnection.url
+  ? new Redis(redisConnection.url, buildRedisClientOptions())
   : new Redis({
-      host: process.env.REDIS_HOST || process.env.REDISHOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || process.env.REDISPORT || '6379', 10),
-      username: process.env.REDIS_USERNAME || process.env.REDISUSER || undefined,
-      password: process.env.REDIS_PASSWORD || process.env.REDISPASSWORD || undefined,
-      ...redisOptions,
+      ...(redisConnection.socket || {
+        host: 'localhost',
+        port: 6379,
+      }),
+      ...buildRedisClientOptions(),
     });
 
 redisClient.on('connect', () => console.log('Redis connected'));
