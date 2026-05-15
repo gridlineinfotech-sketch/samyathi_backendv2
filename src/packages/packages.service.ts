@@ -7,14 +7,14 @@ export class PackagesService {
 
   findAll() {
     return this.prisma.package.findMany({
-      include: { dates: true },
+      include: { dates: true, itinerary: true },
     });
   }
 
   findOne(id: string) {
     return this.prisma.package.findUnique({
       where: { id },
-      include: { dates: true },
+      include: { dates: true, itinerary: true },
     });
   }
 
@@ -28,7 +28,7 @@ export class PackagesService {
       if (filters.minDuration !== undefined) where.duration.gte = filters.minDuration;
       if (filters.maxDuration !== undefined) where.duration.lte = filters.maxDuration;
     }
-    const packages = await this.prisma.package.findMany({ where, include: { dates: true } });
+    const packages = await this.prisma.package.findMany({ where, include: { dates: true, itinerary: true } });
     if (filters.startDate) {
       const start = new Date(filters.startDate);
       return packages.filter(p => p.dates.some(d => new Date(d.startDate) >= start));
@@ -43,7 +43,7 @@ export class PackagesService {
     const where = Object.keys(dateFilter).length > 0 ? { dates: { some: { startDate: dateFilter, availableSeats: { gt: 0 } } } } : {};
     return this.prisma.package.findMany({
       where,
-      include: { dates: { where: { availableSeats: { gt: 0 } } } },
+      include: { dates: { where: { availableSeats: { gt: 0 } } }, itinerary: true },
     });
   }
 }
