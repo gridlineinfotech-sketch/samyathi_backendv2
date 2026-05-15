@@ -19,6 +19,11 @@ export class AdminController {
     return this.adminService.createPackage(body);
   }
 
+  @Get('packages/:id')
+  getPackage(@Param('id') id: string) {
+    return this.adminService.getPackage(id);
+  }
+
   @Patch('packages/:id')
   updatePackage(@Param('id') id: string, @Body() body: any) {
     return this.adminService.updatePackage(id, body);

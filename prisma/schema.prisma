@@ -47,15 +47,35 @@ model KycDocument {
 }
 
 model Package {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  duration    Int
-  location    String
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id              String   @id @default(uuid())
+  title           String
+  description     String
+  duration        Int
+  location        String
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  itineraryOverview Json?
+  logistics       Json?
+  extras          Json?
 
-  dates       PackageDate[]
+  dates           PackageDate[]
+  itinerary       PackageItinerary[]
+}
+
+model PackageItinerary {
+  id            String   @id @default(uuid())
+  packageId     String
+  dayNumber     Int
+  dayTitle      String?
+  description   String?
+  activities    Json?
+  meals         Json?
+  accommodation String?
+  transport     String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  package       Package  @relation(fields: [packageId], references: [id])
 }
 
 model PackageDate {

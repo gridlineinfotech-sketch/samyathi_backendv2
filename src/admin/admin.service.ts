@@ -7,21 +7,75 @@ export class AdminService {
 
   // Packages
   getPackages() {
-    return this.prisma.package.findMany({ include: { dates: true } });
+    return this.prisma.package.findMany({ include: { dates: true, itinerary: true } });
   }
 
   createPackage(data: any) {
-    return this.prisma.package.create({ data });
+    const packageData: any = { ...data };
+    if (packageData.itineraries) {
+      packageData.itinerary = { create: packageData.itineraries };
+      delete packageData.itineraries;
+    }
+    return this.prisma.package.create({ data: packageData });
   }
 
   updatePackage(id: string, data: any) {
-    return this.prisma.package.update({ where: { id }, data });
+    const packageData: any = { ...data };
+    if (packageData.itineraries) {
+      packageData.itinerary = { deleteMany: {}, create: packageData.itineraries };
+      delete packageData.itineraries;
+    }
+    return this.prisma.package.update({ where: { id }, data: packageData });
   }
 
   async deletePackage(id: string) {
     await this.prisma.packageDate.deleteMany({ where: { packageId: id } });
     await this.prisma.package.delete({ where: { id } });
     return { message: 'Package deleted' };
+  }
+
+  async getPackage(id: string) {
+    const packageItem = await this.prisma.package.findUnique({
+      where: { id },
+      include: {
+        dates: { include: { bookings: { include: { user: true, payment: true } } } },
+        itinerary: true,
+      },
+    });
+    if (!packageItem) throw new NotFoundException('Package not found');
+
+    const bookings = packageItem.dates.flatMap((date) =>
+      date.bookings.map((booking) => ({
+        ...booking,
+        packageDate: {
+          id: date.id,
+          startDate: date.startDate,
+          endDate: date.endDate,
+          price: date.price,
+          totalSeats: date.totalSeats,
+          availableSeats: date.availableSeats,
+        },
+      })),
+    );
+
+    const totalBookings = bookings.length;
+    const totalSeatsBooked = bookings.reduce((sum, booking) => sum + booking.seats, 0);
+    const runDates = packageItem.dates.map((date) => ({
+      id: date.id,
+      startDate: date.startDate,
+      endDate: date.endDate,
+      totalSeats: date.totalSeats,
+      availableSeats: date.availableSeats,
+      price: date.price,
+    }));
+
+    return {
+      ...packageItem,
+      totalBookings,
+      totalSeatsBooked,
+      runDates,
+      bookings,
+    };
   }
 
   // Package Dates
